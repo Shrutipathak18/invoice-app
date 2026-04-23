@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# environment variables (VERY IMPORTANT)
+.env
+
+# logs
+logs/
+*.log
+
+# uploaded/generated files
+uploads/
+data/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# editor files
+.vscode/
+
+# Docker (you said you're NOT using it)
+Dockerfile
+Dockerfile.dev
+docker-compose.yml
+docker-setup.sh
+docker-setup.bat
+.dockerignore
+DOCKER.md
