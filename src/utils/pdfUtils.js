@@ -286,13 +286,17 @@ function drawItemsTable(doc, items = [], startY = 160, options = {}) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   let headerX = startX;
-  TABLE_HEADERS.forEach((header, columnIndex) => {
-    const width = columnWidths[columnIndex];
-    const isNumericColumn = [0, 3, 5, 6].includes(columnIndex);
-    const textX = isNumericColumn ? headerX + width - 2 : headerX + 2;
-    doc.text(header, textX, startY + 4, { align: isNumericColumn ? 'right' : 'left' });
-    headerX += width;
-  });
+
+TABLE_HEADERS.forEach((header, columnIndex) => {
+  const width = columnWidths[columnIndex];
+
+  // ✅ center position
+  const textX = headerX + (width / 2);
+
+  doc.text(header, textX, startY + 4, { align: 'center' });
+
+  headerX += width;
+});
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
@@ -553,7 +557,7 @@ function getImageFormatFromDataUrl(dataUrl = '') {
 }
 
 function drawInvoiceHeader(doc, invoiceData) {
-  let currentY = 8;
+  
   const leftX = PDF_SPACING.marginLeft;
   const rightX = 135;
   const logoWidth = 50;
@@ -561,7 +565,8 @@ function drawInvoiceHeader(doc, invoiceData) {
   const imgWidth = 44;
   const imgHeight = 16;
   const contentWidth = 96;
-
+   const topMargin = 15;
+  let currentY = topMargin;
   // ===== COMPANY INFO (LEFT) =====
   doc.setTextColor(14, 165, 233);
   doc.setFont('helvetica', 'bold');
