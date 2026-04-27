@@ -1205,7 +1205,7 @@ export async function generatePDF(invoiceData) {
     // Import jsPDF dynamically to avoid SSR issues
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
-    const response = await fetch('https://fonts.gstatic.com/s/notosans/v36/o-0bIpQlx3QUlC5A4PNjXhFVZNyB1S0.woff2')
+    
     // Set font
     doc.setFont('helvetica');
     doc.setFontSize(12);
@@ -1409,7 +1409,7 @@ export function formatCurrency(amount, currency = 'INR') {
   const numericAmount = Number(amount) || 0;
   const safeCurrency = (currency || 'INR').toUpperCase();
   const symbols = {
-    INR: '₹',
+    INR: 'Rs ',
     USD: '$',
     AUD: '$',
     EUR: 'EUR '
