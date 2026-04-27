@@ -50,8 +50,8 @@ function buildInvoiceNumber() {
 }
 
 const TABLE_HEADERS = ['S.No', 'Description', 'HSN CODE', 'Qty', 'Unit', 'Price', 'Total'];
-const DEFAULT_TABLE_COLUMN_WIDTHS = [14, 44, 37, 12, 10, 31, 32];
-const STRUCTURED_TABLE_COLUMN_RATIOS = [0.05, 0.48, 0.08, 0.08, 0.08, 0.11, 0.10];
+const DEFAULT_TABLE_COLUMN_WIDTHS = [12, 72, 24, 12, 10, 26, 26];
+const STRUCTURED_TABLE_COLUMN_RATIOS = [0.05, 0.58, 0.06, 0.06, 0.06, 0.10, 0.09];
 
 // Spacing and layout constants for PDF
 const PDF_SPACING = {
@@ -75,9 +75,9 @@ const DEFAULT_IEC = 'AAPCM9939C';
 const LAST_BILL_TO_KEY = 'invoiceLastBillTo';
 const LAST_SHIP_TO_KEY = 'invoiceLastShipTo';
 const DEFAULT_BANK_DETAILS = {
-  accountName: 'MMHS-PHOTON PRIVATE LIMITED',
+  accountName:'MMHS-PHOTON PRIVATE LIMITED',
   accountNumber: '10097836979',
-  bankName: 'IDFC FIRST BANK, Main Road Ranchi, India',
+  bankName: 'IDFC FIRST BANK, Main Road, Ranchi, Jharkhand,India',
   ifscCode: 'IDFB0060341',
   swiftCode: 'IDFBINBBMUM',
   adCode: '2010222',
@@ -141,9 +141,18 @@ function drawLinkText(doc, text, x, y, url) {
   }
   doc.setTextColor(0, 0, 255);
   doc.textWithLink(text, x, y, { url });
+
+  // Draw underline manually
+  const textWidth = doc.getTextWidth(text);
+  const lineY = y + 0.8;     // just below baseline
+  doc.setDrawColor(0, 0, 255);
+  doc.setLineWidth(0.2);
+  doc.line(x, lineY, x + textWidth, lineY);
+  doc.setDrawColor(80);      // reset
+  doc.setLineWidth(0.25);    // reset
+
   doc.setTextColor(0, 0, 0);
 }
-
 function getDetailLines(value = '') {
   return String(value)
     .split('\n')
@@ -191,7 +200,7 @@ function resolveTableColumnWidths(baseColumnWidths = DEFAULT_TABLE_COLUMN_WIDTHS
 
 function drawItemsTable(doc, items = [], startY = 160, options = {}) {
   const startX = options.startX ?? 20;
-  const minRowHeight = options.rowHeight ?? 10;
+  const minRowHeight = options.rowHeight ?? 8;
   const headerHeight = options.headerHeight ?? 7;
   const baseColumnWidths = Array.isArray(options.columnWidths) && options.columnWidths.length === 7
     ? options.columnWidths
@@ -205,14 +214,14 @@ function drawItemsTable(doc, items = [], startY = 160, options = {}) {
   const tableWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const descriptionColWidth = columnWidths[1];
   const descriptionTextWidth = descriptionColWidth - 4;
-  const detailLineHeight = 4.5;
+  const detailLineHeight = 3.8;
   const detailItemRowMinHeight = 5.5;
 
   const rowRenderMeta = rows.map((item) => {
     const isDetailed = (item?.descriptionMode || 'simple') === 'detailed';
     if (!isDetailed) {
       const simpleLines = doc.splitTextToSize(item?.description || '', descriptionTextWidth);
-      const simpleHeight = Math.max(minRowHeight, Math.max(1, simpleLines.length) * detailLineHeight + 4);
+      const simpleHeight = Math.max(minRowHeight, Math.max(1, simpleLines.length) * 3.8 + 2);
       return {
         isDetailed: false,
         simpleLines,
@@ -284,7 +293,7 @@ function drawItemsTable(doc, items = [], startY = 160, options = {}) {
   });
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   let headerX = startX;
 
 TABLE_HEADERS.forEach((header, columnIndex) => {
@@ -334,15 +343,18 @@ TABLE_HEADERS.forEach((header, columnIndex) => {
         return;
       }
       const paddedText = fitTextToCell(doc, value, width - 4);
-      const textX = isNumericColumn ? cellX + width - 2 : cellX + 2;
-      const rowY = rowTopY + 5;
-      // 👇 Reduce font only for HSN column
-if (columnIndex === 2) {
-  doc.setFontSize(7); // smaller size for HSN
-} else {
-  doc.setFontSize(9); // default size
+const rowY = rowTopY + 5;
+
+// alignment fix
+let align = 'left';
+let textX = cellX + 2;
+
+if (isNumericColumn) {
+  align = 'right';
+  textX = cellX + width - 2;
 }
-      doc.text(paddedText, textX, rowY, { align: isNumericColumn ? 'right' : 'left' });
+
+doc.text(paddedText, textX, rowY, { align });
       cellX += width;
     });
 
@@ -386,7 +398,7 @@ if (columnIndex === 2) {
       doc.setFont('helvetica', 'normal');
     } else {
       const simpleLines = rowMeta.simpleLines.length > 0 ? rowMeta.simpleLines : ['-'];
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.text(simpleLines, descTextX, rowTopY + 5);
     }
 
@@ -410,21 +422,28 @@ if (columnIndex === 2) {
 function drawTotalsAndWordsBox(doc, invoiceData, yPos) {
   const boxY = yPos + 4;
   const boxHeight = 22;
+  const tableStartX = 20;
+  const tableWidth = DEFAULT_TABLE_COLUMN_WIDTHS.reduce((sum, w) => sum + w, 0);
+  const dividerX = tableStartX + tableWidth - 70; // right portion for totals
+
   doc.setDrawColor(80);
-  doc.rect(20, boxY, 175, boxHeight);
-  doc.line(125, boxY, 125, boxY + boxHeight);
+  doc.rect(tableStartX, boxY, tableWidth, boxHeight);
+  doc.line(dividerX, boxY, dividerX, boxY + boxHeight);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.text('Amount in Words:', 24, boxY + 5);
+  doc.text('Amount in Words:', tableStartX + 4, boxY + 5);
   doc.setFont('helvetica', 'normal');
-  const words = doc.splitTextToSize(invoiceData.amountInWords || '-', 96);
-  doc.text(words, 24, boxY + 10);
+  const words = doc.splitTextToSize(invoiceData.amountInWords || '-', dividerX - tableStartX - 8);
+  doc.text(words, tableStartX + 4, boxY + 10);
+
+  const rightTextX = dividerX + 4;
+  const rightValueX = tableStartX + tableWidth - 2;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('Sub Total:', 130, boxY + 4);
-  doc.text(formatCurrency(invoiceData.subtotal, invoiceData.currency), 192, boxY + 4, { align: 'right' });
+  doc.text('Sub Total:', rightTextX, boxY + 4);
+  doc.text(formatCurrency(invoiceData.subtotal, invoiceData.currency), rightValueX, boxY + 4, { align: 'right' });
 
   const rows = [];
   const isTaxInvoice = invoiceData.invoiceHeading === 'TAX INVOICE';
@@ -434,68 +453,38 @@ function drawTotalsAndWordsBox(doc, invoiceData, yPos) {
   if (isTaxInvoice) {
     if (gstType === 'IGST') {
       const igstAmount = (invoiceData.subtotal * (invoiceData.igstRate || 0)) / 100;
-      rows.push({
-        label: `IGST (${invoiceData.igstRate || 0}%):`,
-        value: invoiceData.igstRate > 0 ? formatCurrency(igstAmount, invoiceData.currency) : 'N/A'
-      });
+      rows.push({ label: `IGST (${invoiceData.igstRate || 0}%):`, value: invoiceData.igstRate > 0 ? formatCurrency(igstAmount, invoiceData.currency) : 'N/A' });
     } else if (gstType === 'CGST+SGST') {
       const cgstAmount = (invoiceData.subtotal * (invoiceData.cgstRate || 0)) / 100;
       const sgstAmount = (invoiceData.subtotal * (invoiceData.sgstRate || 0)) / 100;
-      rows.push({
-        label: `CGST (${invoiceData.cgstRate || 0}%):`,
-        value: invoiceData.cgstRate > 0 ? formatCurrency(cgstAmount, invoiceData.currency) : 'N/A'
-      });
-      rows.push({
-        label: `SGST (${invoiceData.sgstRate || 0}%):`,
-        value: invoiceData.sgstRate > 0 ? formatCurrency(sgstAmount, invoiceData.currency) : 'N/A'
-      });
+      rows.push({ label: `CGST (${invoiceData.cgstRate || 0}%):`, value: invoiceData.cgstRate > 0 ? formatCurrency(cgstAmount, invoiceData.currency) : 'N/A' });
+      rows.push({ label: `SGST (${invoiceData.sgstRate || 0}%):`, value: invoiceData.sgstRate > 0 ? formatCurrency(sgstAmount, invoiceData.currency) : 'N/A' });
     } else if (gstType === 'ALL') {
       const igstAmount = (invoiceData.subtotal * (invoiceData.igstRate || 0)) / 100;
       const cgstAmount = (invoiceData.subtotal * (invoiceData.cgstRate || 0)) / 100;
       const sgstAmount = (invoiceData.subtotal * (invoiceData.sgstRate || 0)) / 100;
-      rows.push({
-        label: `IGST (${invoiceData.igstRate || 0}%):`,
-        value: invoiceData.igstRate > 0 ? formatCurrency(igstAmount, invoiceData.currency) : 'N/A'
-      });
-      rows.push({
-        label: `CGST (${invoiceData.cgstRate || 0}%):`,
-        value: invoiceData.cgstRate > 0 ? formatCurrency(cgstAmount, invoiceData.currency) : 'N/A'
-      });
-      rows.push({
-        label: `SGST (${invoiceData.sgstRate || 0}%):`,
-        value: invoiceData.sgstRate > 0 ? formatCurrency(sgstAmount, invoiceData.currency) : 'N/A'
-      });
+      rows.push({ label: `IGST (${invoiceData.igstRate || 0}%):`, value: invoiceData.igstRate > 0 ? formatCurrency(igstAmount, invoiceData.currency) : 'N/A' });
+      rows.push({ label: `CGST (${invoiceData.cgstRate || 0}%):`, value: invoiceData.cgstRate > 0 ? formatCurrency(cgstAmount, invoiceData.currency) : 'N/A' });
+      rows.push({ label: `SGST (${invoiceData.sgstRate || 0}%):`, value: invoiceData.sgstRate > 0 ? formatCurrency(sgstAmount, invoiceData.currency) : 'N/A' });
     } else if (gstType === 'N/A') {
       rows.push({ label: 'Tax:', value: 'N/A' });
     } else if (gstType === 'Advanced Payment') {
-      rows.push({
-        label: 'Advanced Payment:',
-        value: formatCurrency(invoiceData.advancePayment || 0, invoiceData.currency)
-      });
+      rows.push({ label: 'Advanced Payment:', value: formatCurrency(invoiceData.advancePayment || 0, invoiceData.currency) });
     }
   } else if (invoiceData.invoiceHeading !== 'INVOICE UNDER LUT') {
-    rows.push({
-      label: `Tax (${invoiceData.taxRate || 0}%):`,
-      value: formatCurrency(invoiceData.taxAmount || 0, invoiceData.currency)
-    });
+    rows.push({ label: `Tax (${invoiceData.taxRate || 0}%):`, value: formatCurrency(invoiceData.taxAmount || 0, invoiceData.currency) });
   }
 
   rows.push({ label: 'Total:', value: formatCurrency(invoiceData.total, invoiceData.currency) });
   if (showAdvancePaidLine) {
-    rows.push({
-      label: 'Advance Paid:',
-      value: formatCurrency(invoiceData.advancePayment || 0, invoiceData.currency)
-    });
+    rows.push({ label: 'Advance Paid:', value: formatCurrency(invoiceData.advancePayment || 0, invoiceData.currency) });
   }
-  rows.push({
-    label: 'Total Balance:',
-    value: formatCurrency(invoiceData.totalBalance || 0, invoiceData.currency)
-  });
+  rows.push({ label: 'Total Balance:', value: formatCurrency(invoiceData.totalBalance || 0, invoiceData.currency) });
 
   let yOffset = 8;
   rows.forEach((row) => {
-    doc.text(row.label, 130, boxY + yOffset);
-    doc.text(row.value, 192, boxY + yOffset, { align: 'right' });
+    doc.text(row.label, rightTextX, boxY + yOffset);
+    doc.text(row.value, rightValueX, boxY + yOffset, { align: 'right' });
     yOffset += 4;
   });
 
@@ -504,51 +493,97 @@ function drawTotalsAndWordsBox(doc, invoiceData, yPos) {
 
 function drawBankAndSignatureBoxes(doc, invoiceData, yPos) {
   const topY = yPos + 4;
-  const boxHeight = 34;
+  const tableStartX = 20;
+  const tableWidth = DEFAULT_TABLE_COLUMN_WIDTHS.reduce((sum, w) => sum + w, 0);
+  const leftBoxWidth = Math.round(tableWidth * 0.55);
+  const rightBoxWidth = tableWidth - leftBoxWidth;
+  const rightX = tableStartX + leftBoxWidth;
+  const padding = 3;
+
   doc.setDrawColor(80);
-  doc.rect(20, topY, 87, boxHeight);
-  doc.rect(108, topY, 87, boxHeight);
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('Bank Details', 24, topY + 4);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
   const bankLines = [
-    `Account Name: ${invoiceData.bankDetails?.accountName || '-'}`,
-    `Bank: ${invoiceData.bankDetails?.bankName || '-'}`,
-    `Account: ${invoiceData.bankDetails?.accountNumber || '-'}`,
-    `IFSC: ${invoiceData.bankDetails?.ifscCode || '-'}`,
-    `Swift Code: ${invoiceData.bankDetails?.swiftCode || '-'}`,
-    `AD Code: ${invoiceData.bankDetails?.adCode || '-'}`,
-    ...(invoiceData.notes ? [`Note: ${invoiceData.notes}`] : [])
+    ...(invoiceData.bankDetails?.accountName ? [{ label: 'Account Name', value: invoiceData.bankDetails.accountName }] : []),
+    ...(invoiceData.bankDetails?.bankName ? [{ label: 'Bank', value: invoiceData.bankDetails.bankName }] : []),
+    ...(invoiceData.bankDetails?.accountNumber ? [{ label: 'Account', value: invoiceData.bankDetails.accountNumber }] : []),
+    ...(invoiceData.bankDetails?.ifscCode ? [{ label: 'IFSC', value: invoiceData.bankDetails.ifscCode }] : []),
+    ...(invoiceData.bankDetails?.swiftCode ? [{ label: 'Swift Code', value: invoiceData.bankDetails.swiftCode }] : []),
+    ...(invoiceData.bankDetails?.adCode ? [{ label: 'AD Code', value: invoiceData.bankDetails.adCode }] : []),
+    ...(invoiceData.notes ? [{ label: 'Note', value: invoiceData.notes }] : [])
   ];
-  doc.text(doc.splitTextToSize(bankLines.join('\n'), 80), 24, topY + 10);
+
+  // Pre-calculate total height
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  let totalLines = 0;
+  bankLines.forEach((item) => {
+    // measure label width at bold 8.5
+    const labelPrefix = `${item.label}: `;
+    const labelW = doc.getTextWidth(labelPrefix);
+    const valueMaxWidth = leftBoxWidth - padding * 2 - labelW;
+    doc.setFont('helvetica', 'normal');
+    const valueWrapped = doc.splitTextToSize(item.value, Math.max(valueMaxWidth, 20));
+    doc.setFont('helvetica', 'bold');
+    totalLines += valueWrapped.length;
+  });
+
+  const leftHeight = 12 + totalLines * 4.8 + bankLines.length * 1.2;
+  const rightHeight = 32;
+  const boxHeight = Math.max(leftHeight, rightHeight);
+
+  doc.rect(tableStartX, topY, leftBoxWidth, boxHeight);
+  doc.rect(rightX, topY, rightBoxWidth, boxHeight);
+
+  // --- Heading
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Bank Details', tableStartX + padding, topY + 5);
+
+  // --- Bank lines
+  let lineY = topY + 12;
+  doc.setFontSize(8.5);
+
+  bankLines.forEach((item) => {
+    const labelPrefix = `${item.label}: `;
+
+    // Measure label width at bold
+    doc.setFont('helvetica', 'bold');
+    const labelW = doc.getTextWidth(labelPrefix);
+
+    // Wrap value at remaining width
+    doc.setFont('helvetica', 'normal');
+    const valueMaxWidth = leftBoxWidth - padding * 2 - labelW;
+    const valueLines = doc.splitTextToSize(item.value, Math.max(valueMaxWidth, 20));
+
+    // Draw bold label
+    doc.setFont('helvetica', 'bold');
+    doc.text(labelPrefix, tableStartX + padding, lineY);
+
+    // Draw normal value — first line on same Y, rest indented below
+    doc.setFont('helvetica', 'normal');
+    valueLines.forEach((vLine, i) => {
+      doc.text(vLine, tableStartX + padding + labelW, lineY + i * 4.8);
+    });
+
+    lineY += valueLines.length * 4.8 + 1.2; // line height + gap between fields
+  });
+
+  // --- Right box
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.text(`For ${invoiceData.companyName}`, rightX + padding, topY + 6);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.text(`For ${invoiceData.companyName || 'Company'}`, 112, topY + 4);
-
-  if (invoiceData.signatureDataUrl) {
-    try {
-      doc.addImage(invoiceData.logoDataUrl,
-  getImageFormatFromDataUrl(invoiceData.logoDataUrl),
-  rightX + (logoWidth - imgWidth) / 2,
-  9 + (logoHeight - imgHeight) / 2,
-  imgWidth,
-  imgHeight);
-    } catch (error) {
-      console.error('Could not render signature image:', error);
-    }
-  }
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text(invoiceData.authorizedSignatory || 'Authorised Signatory', 151, topY + 30, { align: 'center' });
+  doc.text(
+    invoiceData.authorizedSignatory || 'Authorised Signatory',
+    rightX + rightBoxWidth / 2,
+    topY + boxHeight - 5,
+    { align: 'center' }
+  );
 
   return topY + boxHeight;
 }
-
 function getImageFormatFromDataUrl(dataUrl = '') {
   if (!dataUrl.startsWith('data:image/')) return 'PNG';
   if (dataUrl.includes('image/jpeg') || dataUrl.includes('image/jpg')) return 'JPEG';
@@ -559,12 +594,12 @@ function getImageFormatFromDataUrl(dataUrl = '') {
 function drawInvoiceHeader(doc, invoiceData) {
   
   const leftX = PDF_SPACING.marginLeft;
-  const rightX = 135;
-  const logoWidth = 50;
-  const logoHeight = 16;
-  const imgWidth = 44;
-  const imgHeight = 16;
-  const contentWidth = 96;
+  const rightX = 155;
+  const logoWidth = 38;
+  const logoHeight = 13;
+  const imgWidth = 38;
+  const imgHeight = 13;
+  const contentWidth = 110;
    const topMargin = 15;
   let currentY = topMargin;
   // ===== COMPANY INFO (LEFT) =====
@@ -587,23 +622,22 @@ function drawInvoiceHeader(doc, invoiceData) {
   doc.text(`Mobile: ${invoiceData.companyMobile || '-'}`, leftX, currentY);
   currentY += 4;
   
-  doc.setTextColor(0, 0, 255);
-  doc.text(`Email: ${invoiceData.companyEmail || '-'}`, leftX, currentY);
-  doc.setTextColor(0, 0, 0);
+  const emailText = `Email: ${invoiceData.companyEmail || '-'}`;
+drawLinkText(doc, emailText, leftX, currentY, getMailtoHref(invoiceData.companyEmail));
+currentY += 4;
+
+if (invoiceData.companyWeb) {
+  const webText = `Web: ${invoiceData.companyWeb}`;
+  drawLinkText(doc, webText, leftX, currentY, getWebsiteHref(invoiceData.companyWeb));
   currentY += 4;
-  
-  if (invoiceData.companyWeb) {
-    doc.setTextColor(0, 0, 255);
-    doc.text(`Web: ${invoiceData.companyWeb}`, leftX, currentY);
-    doc.setTextColor(0, 0, 0);
-    currentY += 4;
+
   }
 
   // ===== LOGO (RIGHT) - NO BOX =====
   // Logo image only, no border box - aligned with company name
   if (invoiceData.logoDataUrl) {
     try {
-      doc.addImage(invoiceData.logoDataUrl, getImageFormatFromDataUrl(invoiceData.logoDataUrl), rightX, 6, imgWidth, imgHeight);
+      doc.addImage(invoiceData.logoDataUrl, getImageFormatFromDataUrl(invoiceData.logoDataUrl), rightX, 8, imgWidth, imgHeight);
     } catch (error) {
       console.error('Could not render logo image:', error);
       doc.setFontSize(7);
@@ -619,9 +653,9 @@ function drawInvoiceHeader(doc, invoiceData) {
   }
 
   // CIN/GST/IEC box - positioned below logo
-  const cinBoxX = rightX;
-  const cinBoxY = 23;
-  const cinBoxWidth = logoWidth;
+ const cinBoxX = rightX;
+  const cinBoxY = 22;
+  const cinBoxWidth = imgWidth;
   const cinBoxHeight = 16;
 
   doc.setDrawColor(80);
@@ -631,9 +665,9 @@ function drawInvoiceHeader(doc, invoiceData) {
   // Text styling for CIN box
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.text(`CIN: ${invoiceData.cin || '-'}`, cinBoxX + 1.5, cinBoxY + 3.5);
-  doc.text(`GST: ${invoiceData.gst || '-'}`, cinBoxX + 1.5, cinBoxY + 8);
-  doc.text(`IEC: ${invoiceData.iec || '-'}`, cinBoxX + 1.5, cinBoxY + 12.5);
+if (invoiceData.cin) doc.text(`CIN: ${invoiceData.cin}`, cinBoxX + 1.5, cinBoxY + 3.5);
+  if (invoiceData.gst) doc.text(`GST: ${invoiceData.gst}`, cinBoxX + 1.5, cinBoxY + 8);
+  if (invoiceData.iec) doc.text(`IEC: ${invoiceData.iec}`, cinBoxX + 1.5, cinBoxY + 12.5);
 
   // ===== INVOICE HEADING (CENTERED) - NO DIVIDER =====
   // Position heading with gap below logo and CIN box
@@ -660,15 +694,25 @@ function drawInvoiceHeader(doc, invoiceData) {
   const detailsRightX = 110;
   let rowY = currentY;
 
-  const details = [
-    { label: 'Invoice No.', value: invoiceData.invoiceNumber || '-' },
-    { label: 'Buyer Order No.', value: invoiceData.buyerOrderNo || '-' },
-    { label: 'Invoice Date', value: new Date(invoiceData.date).toLocaleDateString('en-GB') },
-    { label: 'Buyer PO Date', value: invoiceData.buyerPoDate || '-' },
-    { label: 'State Code', value: invoiceData.stateCode || '-' },
-    { label: 'Payment Terms', value: invoiceData.paymentTerms || '-' },
-  ];
+  // Unified date formatter → DD/MM/YYYY
+function formatDate(dateStr) {
+  if (!dateStr || dateStr === '-') return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+}
 
+const details = [
+  { label: 'Invoice No.', value: invoiceData.invoiceNumber || '' },
+  { label: 'Buyer Order No.', value: invoiceData.buyerOrderNo || '' },
+  { label: 'Invoice Date', value: invoiceData.date ? formatDate(invoiceData.date) : '' },
+  { label: 'Buyer PO Date', value: invoiceData.buyerPoDate ? formatDate(invoiceData.buyerPoDate) : '' },
+  { label: 'State Code', value: invoiceData.stateCode || '' },
+  { label: 'Payment Terms', value: invoiceData.paymentTerms || '' },
+];
   for (let i = 0; i < details.length; i += 2) {
     const leftDetail = details[i];
     const rightDetail = details[i + 1];
@@ -692,172 +736,196 @@ function drawInvoiceHeader(doc, invoiceData) {
 }
 
 function drawPartyBoxes(doc, invoiceData, startY) {
-  const boxWidth = 80;
+  const boxWidth = 87;
   const leftX = PDF_SPACING.marginLeft;
   const rightX = leftX + boxWidth + 8;
   const maxTextWidth = boxWidth - 4;
   const lineHeight = 4.2;
 
-  const billNameLines = doc.splitTextToSize(invoiceData.billTo?.name || '-', maxTextWidth);
+  // Helper: split "COMPANY NAME (ABN xx xxx xxx xxx)" into name + abn
+  const splitNameAbn = (fullName = '') => {
+    const match = fullName.match(/^(.*?)\s*(\(ABN[\s\d]+\))$/i)
+    return match
+      ? { name: match[1].trim(), abn: match[2].trim() }
+      : { name: fullName.trim(), abn: '' }
+  }
+
+  const billParsed = splitNameAbn(invoiceData.billTo?.name || '')
+  const shipParsed = splitNameAbn(invoiceData.shipTo?.name || '')
+
+  // Bill To lines
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  const billNameLines = billParsed.name ? doc.splitTextToSize(billParsed.name, maxTextWidth) : []
+  doc.setFontSize(8)
+  const billAbnLines = billParsed.abn ? doc.splitTextToSize(billParsed.abn, maxTextWidth) : []
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
   const billAddressLines = invoiceData.billTo?.address
     ? doc.splitTextToSize(invoiceData.billTo.address, maxTextWidth).slice(0, 3)
-    : [];
+    : []
   const billEmailLines = invoiceData.billTo?.email
     ? doc.splitTextToSize(`Email: ${invoiceData.billTo.email}`, maxTextWidth)
-    : [];
+    : []
   const billWebLines = invoiceData.billTo?.web
     ? doc.splitTextToSize(`Web: ${invoiceData.billTo.web}`, maxTextWidth)
-    : [];
+    : []
   const billPhoneLines = invoiceData.billTo?.phone
     ? doc.splitTextToSize(`Tel: ${invoiceData.billTo.phone}`, maxTextWidth)
-    : [];
+    : []
 
-  const shipNameLines = doc.splitTextToSize(invoiceData.shipTo?.name || '-', maxTextWidth);
+  // Ship To lines
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  const shipNameLines = shipParsed.name ? doc.splitTextToSize(shipParsed.name, maxTextWidth) : []
+  doc.setFontSize(8)
+  const shipAbnLines = shipParsed.abn ? doc.splitTextToSize(shipParsed.abn, maxTextWidth) : []
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
   const shipAddressLines = invoiceData.shipTo?.address
     ? doc.splitTextToSize(invoiceData.shipTo.address, maxTextWidth).slice(0, 3)
-    : [];
+    : []
   const shipEmailLines = invoiceData.shipTo?.email
     ? doc.splitTextToSize(`Email: ${invoiceData.shipTo.email}`, maxTextWidth)
-    : [];
+    : []
   const shipWebLines = invoiceData.shipTo?.web
     ? doc.splitTextToSize(`Web: ${invoiceData.shipTo.web}`, maxTextWidth)
-    : [];
+    : []
   const shipPhoneLines = invoiceData.shipTo?.phone
     ? doc.splitTextToSize(`Tel: ${invoiceData.shipTo.phone}`, maxTextWidth)
-    : [];
+    : []
 
   const boxHeight = Math.max(32,
     8 + billNameLines.length * lineHeight +
+    billAbnLines.length * lineHeight +
     billAddressLines.length * lineHeight +
     billEmailLines.length * lineHeight +
     billWebLines.length * lineHeight +
     billPhoneLines.length * lineHeight + 6,
 
     8 + shipNameLines.length * lineHeight +
+    shipAbnLines.length * lineHeight +
     shipAddressLines.length * lineHeight +
     shipEmailLines.length * lineHeight +
     shipWebLines.length * lineHeight +
     shipPhoneLines.length * lineHeight + 6
-  );
+  )
 
   // ===== BILL TO =====
-  doc.setDrawColor(80);
-  doc.setLineWidth(0.25);
-  doc.rect(leftX, startY, boxWidth, boxHeight);
+  doc.setDrawColor(80)
+  doc.setLineWidth(0.25)
+  doc.rect(leftX, startY, boxWidth, boxHeight)
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.text('BILL TO', leftX + 2, startY + 4);
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(8)
+  doc.text('BILL TO', leftX + 2, startY + 4)
 
-  doc.setFont('helvetica', 'normal');
-  let billY = startY + 8;
+  let billY = startY + 9
 
-  doc.setFont('helvetica', 'bold');
-  doc.text(billNameLines, leftX + 2, billY);
-  billY += billNameLines.length * lineHeight;
+  // Large bold company name
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  if (billNameLines.length) {
+    doc.text(billNameLines, leftX + 2, billY)
+    billY += billNameLines.length * lineHeight
+  }
 
-  doc.setFont('helvetica', 'normal');
+  // Smaller ABN line below
+  if (billAbnLines.length) {
+    doc.setFontSize(8)
+    doc.text(billAbnLines, leftX + 2, billY)
+    billY += billAbnLines.length * lineHeight
+  }
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
 
   if (billAddressLines.length) {
-    doc.text(billAddressLines, leftX + 2, billY);
-    billY += billAddressLines.length * lineHeight;
+    doc.text(billAddressLines, leftX + 2, billY)
+    billY += billAddressLines.length * lineHeight
   }
 
   if (invoiceData.billTo?.postcode) {
-    doc.text(`Postal Code: ${invoiceData.billTo.postcode}`, leftX + 2, billY);
-    billY += lineHeight;
+    doc.text(`Postal Code: ${invoiceData.billTo.postcode}`, leftX + 2, billY)
+    billY += lineHeight
   }
 
-  // ✅ EMAIL (CLICKABLE)
   if (billEmailLines.length) {
     billEmailLines.forEach((line, i) => {
-      drawLinkText(
-        doc,
-        line,
-        leftX + 2,
-        billY + (i * lineHeight),
-        getMailtoHref(invoiceData.billTo?.email)
-      );
-    });
-    billY += billEmailLines.length * lineHeight;
+      drawLinkText(doc, line, leftX + 2, billY + i * lineHeight, getMailtoHref(invoiceData.billTo?.email))
+    })
+    billY += billEmailLines.length * lineHeight
   }
 
-  // ✅ WEBSITE (CLICKABLE)
   if (billWebLines.length) {
     billWebLines.forEach((line, i) => {
-      drawLinkText(
-        doc,
-        line,
-        leftX + 2,
-        billY + (i * lineHeight),
-        getWebsiteHref(invoiceData.billTo?.web)
-      );
-    });
-    billY += billWebLines.length * lineHeight;
+      drawLinkText(doc, line, leftX + 2, billY + i * lineHeight, getWebsiteHref(invoiceData.billTo?.web))
+    })
+    billY += billWebLines.length * lineHeight
   }
 
   if (billPhoneLines.length) {
-    doc.text(billPhoneLines, leftX + 2, billY);
+    doc.text(billPhoneLines, leftX + 2, billY)
   }
 
   // ===== SHIP TO =====
-  doc.rect(rightX, startY, boxWidth, boxHeight);
+  doc.rect(rightX, startY, boxWidth, boxHeight)
 
-  doc.setFont('helvetica', 'bold');
-  doc.text('SHIP TO', rightX + 2, startY + 4);
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(8)
+  doc.text('SHIP TO', rightX + 2, startY + 4)
 
-  doc.setFont('helvetica', 'normal');
-  let shipY = startY + 8;
+  let shipY = startY + 9
 
-  doc.setFont('helvetica', 'bold');
-  doc.text(shipNameLines, rightX + 2, shipY);
-  shipY += shipNameLines.length * lineHeight;
+  // Large bold company name
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  if (shipNameLines.length) {
+    doc.text(shipNameLines, rightX + 2, shipY)
+    shipY += shipNameLines.length * lineHeight
+  }
 
-  doc.setFont('helvetica', 'normal');
+  // Smaller ABN line below
+  if (shipAbnLines.length) {
+    doc.setFontSize(8)
+    doc.text(shipAbnLines, rightX + 2, shipY)
+    shipY += shipAbnLines.length * lineHeight
+  }
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
 
   if (shipAddressLines.length) {
-    doc.text(shipAddressLines, rightX + 2, shipY);
-    shipY += shipAddressLines.length * lineHeight;
+    doc.text(shipAddressLines, rightX + 2, shipY)
+    shipY += shipAddressLines.length * lineHeight
   }
 
   if (invoiceData.shipTo?.postcode) {
-    doc.text(`Postal Code: ${invoiceData.shipTo.postcode}`, rightX + 2, shipY);
-    shipY += lineHeight;
+    doc.text(`Postal Code: ${invoiceData.shipTo.postcode}`, rightX + 2, shipY)
+    shipY += lineHeight
   }
 
-  // ✅ EMAIL (CLICKABLE)
   if (shipEmailLines.length) {
     shipEmailLines.forEach((line, i) => {
-      drawLinkText(
-        doc,
-        line,
-        rightX + 2,
-        shipY + (i * lineHeight),
-        getMailtoHref(invoiceData.shipTo?.email)
-      );
-    });
-    shipY += shipEmailLines.length * lineHeight;
+      drawLinkText(doc, line, rightX + 2, shipY + i * lineHeight, getMailtoHref(invoiceData.shipTo?.email))
+    })
+    shipY += shipEmailLines.length * lineHeight
   }
 
-  // ✅ WEBSITE (CLICKABLE)
   if (shipWebLines.length) {
     shipWebLines.forEach((line, i) => {
-      drawLinkText(
-        doc,
-        line,
-        rightX + 2,
-        shipY + (i * lineHeight),
-        getWebsiteHref(invoiceData.shipTo?.web)
-      );
-    });
-    shipY += shipWebLines.length * lineHeight;
+      drawLinkText(doc, line, rightX + 2, shipY + i * lineHeight, getWebsiteHref(invoiceData.shipTo?.web))
+    })
+    shipY += shipWebLines.length * lineHeight
   }
 
   if (shipPhoneLines.length) {
-    doc.text(shipPhoneLines, rightX + 2, shipY);
+    doc.text(shipPhoneLines, rightX + 2, shipY)
   }
 
-  return startY + boxHeight + 4;
+  return startY + boxHeight + 4
 }
 // Calculate totals for invoice items
 export function calculateTotals(items = [], taxRates = { igst: 0, cgst: 0, sgst: 0 }) {
@@ -940,7 +1008,7 @@ export function createDefaultInvoiceData() {
     authorizedSignatory: 'Authorised Signatory',
     buyerOrderNo: '',
     buyerPoDate: '',
-    stateCode: '',
+    stateCode: '20',
     paymentTerms: 'within 15 days',
     billTo: {
       name: '',
@@ -1341,7 +1409,7 @@ export function formatCurrency(amount, currency = 'INR') {
   const numericAmount = Number(amount) || 0;
   const safeCurrency = (currency || 'INR').toUpperCase();
   const symbols = {
-    INR: 'Rs ',
+    INR: '₹',
     USD: '$',
     AUD: '$',
     EUR: 'EUR '

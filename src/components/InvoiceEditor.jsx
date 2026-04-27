@@ -230,15 +230,31 @@ const InvoiceEditor = ({ invoiceData, onUpdate }) => {
             </div>
           )}
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Subheading (Optional)</label>
-            <input
-              type="text"
-              value={data.invoiceSubheading || ''}
-              onChange={(e) => handleFieldChange('invoiceSubheading', e.target.value)}
-              className="editable-field w-full"
-              placeholder="EXPORT OF SERVICE AGAINST LUT WITHOUT PAYMENT OF TAX"
-            />
-          </div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Subheading (Optional)</label>
+  {data.invoiceHeading === 'INVOICE UNDER LUT' ? (
+    <select
+      value={data.invoiceSubheading || ''}
+      onChange={(e) => handleFieldChange('invoiceSubheading', e.target.value)}
+      className="editable-field w-full"
+    >
+      <option value="">-- Select Subheading --</option>
+      <option value="EXPORT OF SERVICES UNDER LUT WITHOUT PAYING TAX">
+        EXPORT OF SERVICES UNDER LUT WITHOUT PAYING TAX
+      </option>
+      <option value="EXPORT OF GOODS UNDER LUT WITHOUT PAYING TAX">
+        EXPORT OF GOODS UNDER LUT WITHOUT PAYING TAX
+      </option>
+    </select>
+  ) : (
+    <input
+      type="text"
+      value={data.invoiceSubheading || ''}
+      onChange={(e) => handleFieldChange('invoiceSubheading', e.target.value)}
+      className="editable-field w-full"
+      placeholder="Optional subheading"
+    />
+  )}
+</div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Company Address</label>
             <textarea
