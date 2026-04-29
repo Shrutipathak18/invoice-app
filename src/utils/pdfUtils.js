@@ -481,12 +481,15 @@ function drawTotalsAndWordsBox(doc, invoiceData, yPos) {
   }
   rows.push({ label: 'Total Balance:', value: formatCurrency(invoiceData.totalBalance || 0, invoiceData.currency) });
 
-  let yOffset = 8;
+ let yOffset = 8;
   rows.forEach((row) => {
+    const isTotalBalance = row.label === 'Total Balance:';
+    doc.setFont('helvetica', isTotalBalance ? 'bold' : 'normal');
     doc.text(row.label, rightTextX, boxY + yOffset);
     doc.text(row.value, rightValueX, boxY + yOffset, { align: 'right' });
     yOffset += 4;
   });
+  doc.setFont('helvetica', 'normal'); // reset after loop
 
   return boxY + boxHeight;
 }
@@ -1409,7 +1412,7 @@ export function formatCurrency(amount, currency = 'INR') {
   const numericAmount = Number(amount) || 0;
   const safeCurrency = (currency || 'INR').toUpperCase();
   const symbols = {
-    INR: 'Rs ',
+    INR: '₹ ',
     USD: '$',
     AUD: '$',
     EUR: 'EUR '
