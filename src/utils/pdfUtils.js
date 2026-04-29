@@ -31,7 +31,7 @@ export function numberToWords(num) {
 
 function getCurrencyWord(currency = 'INR') {
 const mapping = {
-    INR: 'Indian Rupee',
+    INR: 'Indian Rupees',
     AUD: 'Australian Dollar',
     USD: 'US Dollar',
     EUR: 'Euro'
