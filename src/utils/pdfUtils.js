@@ -1,3 +1,13 @@
+import { notoSansRegular } from './notoSansRegular.js';
+import { notoSansBold } from './notoSansBold.js';
+function registerNotoSansFont(doc) {
+  doc.addFileToVFS('NotoSans-Regular.ttf', notoSansRegular);
+  doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+  doc.addFileToVFS('NotoSans-Bold.ttf', notoSansBold);
+  doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
+  doc.setFont('NotoSans', 'normal');
+}
+
 // Convert number to words (for amount in words)
 export function numberToWords(num) {
   const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
@@ -292,22 +302,20 @@ function drawItemsTable(doc, items = [], startY = 160, options = {}) {
     doc.line(separatorX, startY, separatorX, descriptionStartY);
   });
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  let headerX = startX;
+  doc.setFont('NotoSans', 'bold');
+doc.setFontSize(7);
+let headerX = startX;
 
-TABLE_HEADERS.forEach((header, columnIndex) => {
+const currency = options.currency || 'INR';
+const dynamicHeaders = ['S.No', 'Description', 'HSN CODE', 'Qty', 'Unit', `Price (${currency})`, `Total (${currency})`];
+
+dynamicHeaders.forEach((header, columnIndex) => {
   const width = columnWidths[columnIndex];
-
-  // ✅ center position
   const textX = headerX + (width / 2);
-
   doc.text(header, textX, startY + 4, { align: 'center' });
-
   headerX += width;
 });
-
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('NotoSans', 'normal');
   doc.setFontSize(9);
 
   let rowTopY = startY + headerHeight;
@@ -362,7 +370,7 @@ doc.text(paddedText, textX, rowY, { align });
     const descTextX = descCellX + 2;
     if (rowMeta.isDetailed) {
       let detailY = rowTopY + 4;
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'bold');
       doc.setFontSize(9);
       doc.text(rowMeta.titleLines, descCellX + (descriptionColWidth / 2), detailY, { align: 'center' });
       detailY += Math.max(1, rowMeta.titleLines.length) * detailLineHeight + 2;
@@ -391,11 +399,11 @@ doc.text(paddedText, textX, rowY, { align });
       detailY = detailBoxY + detailBoxHeight + 5;
       if (rowMeta.noteLines.length > 0) {
         doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('NotoSans', 'bold');
         doc.setFontSize(7);
         doc.text(rowMeta.noteLines, descTextX, detailY);
       }
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
     } else {
       const simpleLines = rowMeta.simpleLines.length > 0 ? rowMeta.simpleLines : ['-'];
       doc.setFontSize(8);
@@ -411,7 +419,7 @@ doc.text(paddedText, textX, rowY, { align });
       doc.line(startX + 2, lineY, startX + tableWidth - 2, lineY);
     }
     doc.setDrawColor(80);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSans', 'normal');
     doc.setFontSize(8);
     doc.text(descriptionLines, startX + 2, descriptionStartY + 3.5);
   }
@@ -431,16 +439,16 @@ function drawTotalsAndWordsBox(doc, invoiceData, yPos) {
   doc.line(dividerX, boxY, dividerX, boxY + boxHeight);
 
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.text('Amount in Words:', tableStartX + 4, boxY + 5);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('NotoSans', 'normal');
   const words = doc.splitTextToSize(invoiceData.amountInWords || '-', dividerX - tableStartX - 8);
   doc.text(words, tableStartX + 4, boxY + 10);
 
   const rightTextX = dividerX + 4;
   const rightValueX = tableStartX + tableWidth - 2;
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'normal');
   doc.setFontSize(8);
   doc.text('Sub Total:', rightTextX, boxY + 4);
   doc.text(formatCurrency(invoiceData.subtotal, invoiceData.currency), rightValueX, boxY + 4, { align: 'right' });
@@ -484,12 +492,12 @@ function drawTotalsAndWordsBox(doc, invoiceData, yPos) {
  let yOffset = 8;
   rows.forEach((row) => {
     const isTotalBalance = row.label === 'Total Balance:';
-    doc.setFont('helvetica', isTotalBalance ? 'bold' : 'normal');
+    doc.setFont('NotoSans', isTotalBalance ? 'bold' : 'normal');
     doc.text(row.label, rightTextX, boxY + yOffset);
     doc.text(row.value, rightValueX, boxY + yOffset, { align: 'right' });
     yOffset += 4;
   });
-  doc.setFont('helvetica', 'normal'); // reset after loop
+  doc.setFont('NotoSans', 'normal'); // reset after loop
 
   return boxY + boxHeight;
 }
@@ -516,7 +524,7 @@ function drawBankAndSignatureBoxes(doc, invoiceData, yPos) {
   ];
 
   // Pre-calculate total height
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.setFontSize(8.5);
   let totalLines = 0;
   bankLines.forEach((item) => {
@@ -524,9 +532,9 @@ function drawBankAndSignatureBoxes(doc, invoiceData, yPos) {
     const labelPrefix = `${item.label}: `;
     const labelW = doc.getTextWidth(labelPrefix);
     const valueMaxWidth = leftBoxWidth - padding * 2 - labelW;
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSans', 'normal');
     const valueWrapped = doc.splitTextToSize(item.value, Math.max(valueMaxWidth, 20));
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     totalLines += valueWrapped.length;
   });
 
@@ -538,7 +546,7 @@ function drawBankAndSignatureBoxes(doc, invoiceData, yPos) {
   doc.rect(rightX, topY, rightBoxWidth, boxHeight);
 
   // --- Heading
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.setFontSize(10);
   doc.text('Bank Details', tableStartX + padding, topY + 5);
 
@@ -550,20 +558,20 @@ function drawBankAndSignatureBoxes(doc, invoiceData, yPos) {
     const labelPrefix = `${item.label}: `;
 
     // Measure label width at bold
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     const labelW = doc.getTextWidth(labelPrefix);
 
     // Wrap value at remaining width
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSans', 'normal');
     const valueMaxWidth = leftBoxWidth - padding * 2 - labelW;
     const valueLines = doc.splitTextToSize(item.value, Math.max(valueMaxWidth, 20));
 
     // Draw bold label
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.text(labelPrefix, tableStartX + padding, lineY);
 
     // Draw normal value — first line on same Y, rest indented below
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSans', 'normal');
     valueLines.forEach((vLine, i) => {
       doc.text(vLine, tableStartX + padding + labelW, lineY + i * 4.8);
     });
@@ -572,11 +580,11 @@ function drawBankAndSignatureBoxes(doc, invoiceData, yPos) {
   });
 
   // --- Right box
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.setFontSize(9.5);
   doc.text(`For ${invoiceData.companyName}`, rightX + padding, topY + 6);
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.setFontSize(9);
   doc.text(
     invoiceData.authorizedSignatory || 'Authorised Signatory',
@@ -607,13 +615,13 @@ function drawInvoiceHeader(doc, invoiceData) {
   let currentY = topMargin;
   // ===== COMPANY INFO (LEFT) =====
   doc.setTextColor(14, 165, 233);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.setFontSize(16);
   doc.text(invoiceData.companyName || '-', leftX, currentY);
 
   currentY += 6;
   doc.setTextColor(0, 0, 0);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('NotoSans', 'normal');
   doc.setFontSize(8);
   
   const addressLines = doc.splitTextToSize(invoiceData.companyAddress || '-', contentWidth);
@@ -666,7 +674,7 @@ if (invoiceData.companyWeb) {
   doc.rect(cinBoxX, cinBoxY, cinBoxWidth, cinBoxHeight);
 
   // Text styling for CIN box
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('NotoSans', 'normal');
   doc.setFontSize(7);
 if (invoiceData.cin) doc.text(`CIN: ${invoiceData.cin}`, cinBoxX + 1.5, cinBoxY + 3.5);
   if (invoiceData.gst) doc.text(`GST: ${invoiceData.gst}`, cinBoxX + 1.5, cinBoxY + 8);
@@ -676,7 +684,7 @@ if (invoiceData.cin) doc.text(`CIN: ${invoiceData.cin}`, cinBoxX + 1.5, cinBoxY 
   // Position heading with gap below logo and CIN box
   currentY = 45;
   doc.setTextColor(14, 165, 233);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.setFontSize(12);
   doc.text(invoiceData.invoiceHeading || 'INVOICING UNDER LUT', 100, currentY, { align: 'center' });
   
@@ -690,7 +698,7 @@ if (invoiceData.cin) doc.text(`CIN: ${invoiceData.cin}`, cinBoxX + 1.5, cinBoxY 
   // ===== INVOICE DETAILS GRID (2 COLUMNS) =====
   currentY += 1;
   doc.setTextColor(0, 0, 0);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('NotoSans', 'normal');
   doc.setFontSize(8);
 
   const detailsLeftX = leftX;
@@ -720,15 +728,15 @@ const details = [
     const leftDetail = details[i];
     const rightDetail = details[i + 1];
 
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.text(`${leftDetail.label}:`, detailsLeftX, rowY);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSans', 'normal');
     doc.text(leftDetail.value, detailsLeftX + 28, rowY);
 
     if (rightDetail) {
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'bold');
       doc.text(`${rightDetail.label}:`, detailsRightX, rowY);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       doc.text(rightDetail.value, detailsRightX + 28, rowY);
     }
 
@@ -757,14 +765,14 @@ function drawPartyBoxes(doc, invoiceData, startY) {
   const shipParsed = splitNameAbn(invoiceData.shipTo?.name || '')
 
   // Bill To lines
-  doc.setFont('helvetica', 'bold')
+  doc.setFont('NotoSans', 'bold')
   doc.setFontSize(10)
   const billNameLines = billParsed.name ? doc.splitTextToSize(billParsed.name, maxTextWidth) : []
   doc.setFontSize(8)
   const billAbnLines = billParsed.abn ? doc.splitTextToSize(billParsed.abn, maxTextWidth) : []
 
   doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
+  doc.setFont('NotoSans', 'normal')
   const billAddressLines = invoiceData.billTo?.address
     ? doc.splitTextToSize(invoiceData.billTo.address, maxTextWidth).slice(0, 3)
     : []
@@ -779,14 +787,14 @@ function drawPartyBoxes(doc, invoiceData, startY) {
     : []
 
   // Ship To lines
-  doc.setFont('helvetica', 'bold')
+  doc.setFont('NotoSans', 'bold')
   doc.setFontSize(10)
   const shipNameLines = shipParsed.name ? doc.splitTextToSize(shipParsed.name, maxTextWidth) : []
   doc.setFontSize(8)
   const shipAbnLines = shipParsed.abn ? doc.splitTextToSize(shipParsed.abn, maxTextWidth) : []
 
   doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
+  doc.setFont('NotoSans', 'normal')
   const shipAddressLines = invoiceData.shipTo?.address
     ? doc.splitTextToSize(invoiceData.shipTo.address, maxTextWidth).slice(0, 3)
     : []
@@ -821,14 +829,14 @@ function drawPartyBoxes(doc, invoiceData, startY) {
   doc.setLineWidth(0.25)
   doc.rect(leftX, startY, boxWidth, boxHeight)
 
-  doc.setFont('helvetica', 'bold')
+  doc.setFont('NotoSans', 'bold')
   doc.setFontSize(8)
   doc.text('BILL TO', leftX + 2, startY + 4)
 
   let billY = startY + 9
 
   // Large bold company name
-  doc.setFont('helvetica', 'bold')
+  doc.setFont('NotoSans', 'bold')
   doc.setFontSize(10)
   if (billNameLines.length) {
     doc.text(billNameLines, leftX + 2, billY)
@@ -842,7 +850,7 @@ function drawPartyBoxes(doc, invoiceData, startY) {
     billY += billAbnLines.length * lineHeight
   }
 
-  doc.setFont('helvetica', 'normal')
+  doc.setFont('NotoSans', 'normal')
   doc.setFontSize(8)
 
   if (billAddressLines.length) {
@@ -876,14 +884,14 @@ function drawPartyBoxes(doc, invoiceData, startY) {
   // ===== SHIP TO =====
   doc.rect(rightX, startY, boxWidth, boxHeight)
 
-  doc.setFont('helvetica', 'bold')
+  doc.setFont('NotoSans', 'bold')
   doc.setFontSize(8)
   doc.text('SHIP TO', rightX + 2, startY + 4)
 
   let shipY = startY + 9
 
   // Large bold company name
-  doc.setFont('helvetica', 'bold')
+  doc.setFont('NotoSans', 'bold')
   doc.setFontSize(10)
   if (shipNameLines.length) {
     doc.text(shipNameLines, rightX + 2, shipY)
@@ -897,7 +905,7 @@ function drawPartyBoxes(doc, invoiceData, startY) {
     shipY += shipAbnLines.length * lineHeight
   }
 
-  doc.setFont('helvetica', 'normal')
+  doc.setFont('NotoSans', 'normal')
   doc.setFontSize(8)
 
   if (shipAddressLines.length) {
@@ -1208,9 +1216,9 @@ export async function generatePDF(invoiceData) {
     // Import jsPDF dynamically to avoid SSR issues
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
-    
+    registerNotoSansFont(doc);
     // Set font
-    doc.setFont('helvetica');
+    doc.setFont('NotoSans');
     doc.setFontSize(12);
     
     // Draw header with invoice heading and details
@@ -1273,7 +1281,7 @@ export async function generatePDFFromTemplate(invoiceData, templateFile) {
     const doc = new jsPDF();
     
     // Set font
-    doc.setFont('helvetica');
+    doc.setFont('NotoSans');
     doc.setFontSize(12);
     
     drawInvoiceHeader(doc, invoiceData);
@@ -1412,7 +1420,7 @@ export function formatCurrency(amount, currency = 'INR') {
   const numericAmount = Number(amount) || 0;
   const safeCurrency = (currency || 'INR').toUpperCase();
   const symbols = {
-    INR: '₹ ',
+    INR: '₹',
     USD: '$',
     AUD: '$',
     EUR: 'EUR '
